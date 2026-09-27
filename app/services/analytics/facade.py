@@ -23,6 +23,7 @@ from app.services.analytics.strategies import (
     ComparisonAnalysisStrategy,
     TrendAnalysisStrategy,
 )
+from app.services.cache import CacheKey, analytics_cache
 from app.services.wikimedia.client import create_wikimedia_client
 from app.services.wikimedia.service import fetch_all_languages_data
 
@@ -62,6 +63,19 @@ class WikipediaTrendsAnalyzer:
 
         raw_languages = languages or ["en"]
         resolved_languages = expand_region_codes(raw_languages)
+
+        # ── Stage 0: Cache lookup ────────────────────────────────────────────
+        cache_key = CacheKey.build(
+            topic=topic,
+            language_codes=resolved_languages,
+            start_date=resolved_start,
+            end_date=resolved_end,
+            granularity=granularity,
+            include_ai_summary=include_ai_summary,
+        )
+        cached = await analytics_cache.get(cache_key)
+        if cached is not None:
+            return cached
 
         logger.info(
             "Fetching Wikipedia data for topic '%s' (hub: %s) across %d language(s)...",
@@ -146,7 +160,7 @@ class WikipediaTrendsAnalyzer:
                 client=instructor_client,
             )
 
-        return AnalyticsResultDTO(
+        result = AnalyticsResultDTO(
             topic=topic,
             source_topic=source_topic,
             granularity=granularity,
@@ -156,3 +170,7 @@ class WikipediaTrendsAnalyzer:
             comparison=comparison_dto,
             ai_interpretation=ai_interpretation,
         )
+
+        # ── Stage 5: Cache store ─────────────────────────────────────────────
+        await analytics_cache.set(cache_key, result)
+        return result
