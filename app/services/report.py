@@ -238,8 +238,22 @@ def _render_header(pdf: WikiAuraPDF, result: AnalyticsResultDTO) -> None:
 
     pdf.set_font("Arial", size=7.5)
     pdf._set_text(*C_MUTED)
-    start = result.start_date[:6].replace("20", "20", 1)  # keep as-is
-    end = result.end_date[:6]
+    from datetime import datetime
+
+    def _fmt_date(raw: str) -> str:
+        """Convert YYYYMMDD or YYYYMM to 'Jan 2023' format."""
+        raw = raw.replace("-", "")[:8]
+        try:
+            if len(raw) >= 8:
+                return datetime.strptime(raw[:8], "%Y%m%d").strftime("%b %Y")
+            if len(raw) >= 6:
+                return datetime.strptime(raw[:6], "%Y%m").strftime("%b %Y")
+        except ValueError:
+            pass
+        return raw
+
+    start = _fmt_date(result.start_date or "")
+    end = _fmt_date(result.end_date or "")
     langs = ", ".join(
         f"[{lang}]" for lang in result.languages
         if result.languages[lang].found
