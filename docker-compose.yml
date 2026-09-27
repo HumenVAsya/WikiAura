@@ -4,8 +4,13 @@ services:
     ports:
       - "8000:8000"
     shm_size: "1gb"
+    env_file:
+      - .env
     environment:
       - PYTHONUNBUFFERED=1
+      - GEMINI_API_KEY
+      - GEMINI_MODEL
+      - ANTHROPIC_API_KEY
     volumes:
       - .:/app
       - /app/.venv

@@ -1,26 +1,150 @@
+"""Pydantic schemas for WikiAura requests and responses."""
+
+from __future__ import annotations
+
+from datetime import datetime, timedelta
+from typing import List, Optional
 from pydantic import BaseModel, Field
 
 
-class AnalyzeRequest(BaseModel):
-    """Payload schema for requesting Wikipedia trend analysis and PDF report generation."""
+def default_start_date() -> str:
+    """Return default start date formatted as YYYYMMDD (1 year ago)."""
+    return (datetime.now() - timedelta(days=365)).strftime("%Y%m%d")
 
-    topic: str = Field(
+
+def default_end_date() -> str:
+    """Return default end date formatted as YYYYMMDD (today)."""
+    return datetime.now().strftime("%Y%m%d")
+
+
+class WikipediaQueryParams(BaseModel):
+    """Structured query parameters for Wikipedia pageview analysis resolved by LLM."""
+
+    base_topic: str = Field(
+        ...,
+        description="The core topic translated to an exact English Wikipedia article title (e.g., 'Tobacco smoking').",
+        examples=["Tobacco smoking"],
+    )
+    source_topic: Optional[str] = Field(
+        default=None,
+        description="Original localized topic name in user's query language if different from base_topic (e.g., 'єПідтримка' or 'Запорізька Січ').",
+        examples=["єПідтримка"],
+    )
+    language_codes: List[str] = Field(
+        default_factory=lambda: ["en"],
+        description="List of ISO 639-1 language codes. If a region is mentioned, expanded to major languages of that region.",
+        examples=[["en", "de", "fr", "es", "it", "pl", "uk", "nl", "cs"]],
+    )
+    start_date: str = Field(
+        default_factory=default_start_date,
+        description="Start date in YYYYMMDD format. Default to 1 year ago if not specified.",
+        examples=["20250927"],
+    )
+    end_date: str = Field(
+        default_factory=default_end_date,
+        description="End date in YYYYMMDD format. Default to today if not specified.",
+        examples=["20260927"],
+    )
+    granularity: str = Field(
+        default="monthly",
+        description="Pageview granularity: either 'daily' or 'monthly'. Default is 'monthly'.",
+        examples=["monthly"],
+    )
+
+
+class AnalyzeTopicRequest(BaseModel):
+    """Natural language query request payload."""
+
+    query: str = Field(
         ...,
         min_length=1,
-        max_length=255,
-        description="Wikipedia article title or search keyword to fetch and analyze.",
-        examples=["Artificial intelligence"],
+        description="Natural language query describing the topic, region, or timeframe.",
+        examples=["статистика по всій європі по людям які люблять курити"],
     )
-    lang: str = Field(
-        default="en",
-        pattern=r"^[a-z]{2,3}$",
-        description="Wikipedia language edition code (e.g., 'en', 'de', 'fr', 'uk').",
-        examples=["en"],
+
+
+class WikiTrendAnalysisRequest(BaseModel):
+    """Payload schema for manual Wikipedia trend analysis request."""
+
+    base_topic: str = Field(
+        ...,
+        description="The main topic to analyze in the user's base language (e.g., 'Intermittent fasting').",
+        examples=["Intermittent fasting"],
     )
-    months: int = Field(
-        default=12,
-        ge=1,
-        le=60,
-        description="Number of past months to retrieve for MoM (Month-over-Month) and YoY (Year-over-Year) trends.",
-        examples=[12],
+    source_topic: Optional[str] = Field(
+        default=None,
+        description="Optional original localized topic name in user's query language.",
+        examples=["єПідтримка"],
     )
+    language_codes: List[str] = Field(
+        ...,
+        description="List of 2-letter Wikipedia language codes (e.g., ['pl', 'cs']).",
+        examples=[["en", "pl", "cs"]],
+    )
+    start_date: str = Field(
+        ...,
+        description="Start date in YYYY-MM-DD or YYYYMMDD format.",
+        examples=["2023-01-01"],
+    )
+    end_date: str = Field(
+        ...,
+        description="End date in YYYY-MM-DD or YYYYMMDD format.",
+        examples=["2023-12-31"],
+    )
+    granularity: str = Field(
+        default="monthly",
+        description="Either 'daily' or 'monthly'.",
+        examples=["monthly"],
+    )
+    generate_pdf: bool = Field(
+        default=False,
+        description="Whether to generate a PDF report (reserved for future phases).",
+    )
+
+
+# Backward compatibility alias
+AnalyzeRequest = WikiTrendAnalysisRequest
+
+
+class PageviewItem(BaseModel):
+    """Individual pageview record for a specific date or month."""
+
+    timestamp: str = Field(..., description="Timestamp in Wikimedia format (e.g. '2023010100').")
+    date: str = Field(..., description="Formatted date (e.g. '2023-01' or '2023-01-01').")
+    views: int = Field(..., description="Number of user pageviews in this period.")
+    is_partial: bool = Field(
+        default=False,
+        description="True if the period is currently ongoing and metrics are partial.",
+    )
+
+
+class LanguagePageviewsResult(BaseModel):
+    """Pageview metrics and article metadata for a specific Wikipedia language edition."""
+
+    language: str
+    article_title: Optional[str] = None
+    article_slug: Optional[str] = None
+    found: bool = False
+    total_views: int = 0
+    items: List[PageviewItem] = Field(default_factory=list)
+
+
+class WikiTrendAnalysisResponse(BaseModel):
+    """Clean response schema containing resolved articles and pageviews data."""
+
+    status: str = "success"
+    topic: str
+    granularity: str
+    start_date: str
+    end_date: str
+    languages_analyzed: List[str]
+    results: List[LanguagePageviewsResult]
+
+
+class AnalyzeTopicResponse(BaseModel):
+    """Response containing parsed natural language parameters and Wikipedia statistics."""
+
+    status: str = "success"
+    query: str
+    parsed_params: WikipediaQueryParams
+    results: List[LanguagePageviewsResult]

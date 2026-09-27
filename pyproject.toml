@@ -13,6 +13,10 @@ dependencies = [
     "jinja2>=3.1.4",
     "playwright>=1.47.0",
     "pydantic>=2.9.0",
+    "fpdf2>=2.8.8",
+    "anthropic>=1.8.0",
+    "openai>=1.50.0",
+    "instructor>=1.17.0",
 ]
 
 [build-system]
@@ -21,3 +25,10 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["app"]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+    "pytest-asyncio>=1.4.0",
+    "respx>=0.23.1",
+]
