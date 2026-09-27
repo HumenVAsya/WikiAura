@@ -102,7 +102,6 @@ class WikiTrendAnalysisRequest(BaseModel):
     )
 
 
-# Backward compatibility alias
 AnalyzeRequest = WikiTrendAnalysisRequest
 
 
@@ -148,3 +147,51 @@ class AnalyzeTopicResponse(BaseModel):
     query: str
     parsed_params: WikipediaQueryParams
     results: List[LanguagePageviewsResult]
+
+
+class TrendAnalyticsRequest(BaseModel):
+    """Structured request for full 4-stage analytics engine."""
+
+    topic: str = Field(
+        ...,
+        description="Wikipedia base topic to analyze (e.g. 'Coffee', 'Artificial intelligence').",
+    )
+    language_codes: List[str] = Field(
+        default=["en"],
+        description="List of ISO 639-1 language codes or region names (e.g. ['uk', 'pl'], ['europe']).",
+    )
+    start_date: Optional[str] = Field(
+        default=None,
+        description="Start date in YYYYMMDD or YYYY-MM-DD format (defaults to 1 year ago).",
+    )
+    end_date: Optional[str] = Field(
+        default=None,
+        description="End date in YYYYMMDD or YYYY-MM-DD format (defaults to today).",
+    )
+    granularity: str = Field(
+        default="monthly",
+        pattern="^(monthly|daily)$",
+        description="Aggregation interval ('monthly' or 'daily').",
+    )
+    source_topic: Optional[str] = Field(
+        default=None,
+        description="Native language article title hub (e.g. 'єПідтримка', 'Кава').",
+    )
+    include_ai_summary: bool = Field(
+        default=True,
+        description="Whether to generate AI executive synthesis and insights.",
+    )
+
+
+class NaturalLanguageAnalyticsRequest(BaseModel):
+    """Natural language request for complete 4-stage analytics engine."""
+
+    query: str = Field(
+        ...,
+        min_length=2,
+        description="Natural language query (e.g. 'Покажи тренди єПідтримки в Україні та Польщі за рік')",
+    )
+    include_ai_summary: bool = Field(
+        default=True,
+        description="Whether to generate AI executive synthesis and insights.",
+    )

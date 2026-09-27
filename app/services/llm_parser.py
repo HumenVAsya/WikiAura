@@ -104,7 +104,6 @@ async def parse_user_query_to_schema(
     """Parse natural language query into structured WikipediaQueryParams using Gemini and instructor."""
     target_model = model or os.getenv("GEMINI_MODEL", DEFAULT_GEMINI_MODEL)
 
-    # If an explicit instructor client is provided (e.g., in unit tests), use it directly
     if client is not None:
         try:
             parsed = await client.chat.completions.create(
@@ -152,7 +151,6 @@ async def parse_user_query_to_schema(
                 user_query,
                 exc,
             )
-            # Only break immediately on fatal authentication errors
             if "invalid_api_key" in err_msg or "unauthorized" in err_msg:
                 break
 

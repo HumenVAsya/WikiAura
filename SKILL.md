@@ -120,6 +120,105 @@ curl -X POST "http://localhost:8000/api/v1/analyze" \
 
 ---
 
+### 3. Full 4-Stage Trend Analytics & AI Synthesis (`POST /api/v1/analytics/trends`)
+
+Executes the complete 4-stage pipeline (Ingestion -> Gap-Free Standardization -> Compute Strategies -> AI Synthesis):
+
+```bash
+curl -X POST "http://localhost:8000/api/v1/analytics/trends" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "topic": "Coffee",
+    "language_codes": ["en", "uk", "de", "pl"],
+    "start_date": "20230101",
+    "end_date": "20231231",
+    "granularity": "monthly",
+    "include_ai_summary": true
+  }'
+```
+
+#### Response:
+```json
+{
+  "topic": "Coffee",
+  "granularity": "monthly",
+  "start_date": "20230101",
+  "end_date": "20231231",
+  "languages": {
+    "en": {
+      "language": "en",
+      "article_title": "Coffee",
+      "found": true,
+      "metrics": {
+        "total_views": 1542000,
+        "average_views": 128500.0,
+        "median_views": 126400.0,
+        "std_dev": 14200.0,
+        "volatility_score": 0.11,
+        "mom_growth_percent": 3.4,
+        "yoy_growth_percent": 12.8,
+        "peak_date": "2023-10",
+        "peak_views": 149200,
+        "trough_date": "2023-07",
+        "trough_views": 110500,
+        "trend_direction": "growing",
+        "confidence_score": 0.95,
+        "anomaly_count": 0
+      },
+      "time_series": [
+        {
+          "date": "2023-01",
+          "timestamp": "2023010100",
+          "views": 122000,
+          "rolling_average": 122000.0,
+          "is_partial": false,
+          "is_anomaly": false,
+          "z_score": -0.46
+        }
+      ]
+    }
+  },
+  "comparison": {
+    "dominant_language": "en",
+    "fastest_growing_language": "pl",
+    "language_shares_percent": {
+      "en": 78.4,
+      "de": 12.1,
+      "pl": 5.8,
+      "uk": 3.7
+    },
+    "correlation_matrix": {
+      "en": { "en": 1.0, "de": 0.84, "pl": 0.72, "uk": 0.65 }
+    }
+  },
+  "ai_interpretation": {
+    "trend_summary": "Steady positive interest expansion observed for 'Coffee' led by Wikipedia [en].",
+    "direction": "growing",
+    "confidence": "high",
+    "seasonality_detected": true,
+    "key_drivers": ["Annual YoY trajectory: +12.8%.", "Fastest growing language edition: [pl]."],
+    "business_takeaway": "Sustained audience interest suggests strong organic demand and viable expansion potential."
+  }
+}
+```
+
+---
+
+### 4. Natural Language Analytics (`POST /api/v1/analytics/natural-language`)
+
+Accepts natural language queries, extracts topics/dates/languages, and runs the 4-stage analytics engine:
+
+```bash
+curl -X POST "http://localhost:8000/api/v1/analytics/natural-language" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "Покажи тренди єПідтримки в Україні та Польщі за рік",
+    "include_ai_summary": true
+  }'
+```
+
+---
+
 ## Local Development & Testing
 
 ```bash

@@ -101,21 +101,16 @@ async def resolve_localized_titles(
         resp.raise_for_status()
         return resp.json()
 
-    # Determine candidate hubs: list of (topic, lang) to try
     is_cyrillic = any("\u0400" <= c <= "\u04FF" for c in base_topic)
     candidates = []
 
-    # Identify primary local language from requested languages
     local_lang = next((l for l in language_codes if l != "en" and l != "all"), "uk")
 
     if is_cyrillic:
-        # For non-Latin/Cyrillic base topics, start with the local language first
         candidates.append((base_topic, local_lang))
         candidates.append((base_topic, "en"))
     else:
-        # Default: try English Wikipedia first
         candidates.append((base_topic, "en"))
-        # Fallback: try source_topic in local language if provided
         if source_topic:
             candidates.append((source_topic, local_lang))
         elif local_lang and local_lang != "en":
@@ -129,7 +124,6 @@ async def resolve_localized_titles(
             data = await _fetch_langlinks_data(candidate_topic, lang=hub_lang)
             pages = data.get("query", {}).get("pages", {})
 
-            # Check if the page is missing or a disambiguation page
             is_missing_or_disambig = False
             if not pages or "-1" in pages:
                 is_missing_or_disambig = True
@@ -187,7 +181,6 @@ async def resolve_localized_titles(
             continue
 
         canonical_title = page_info.get("title", base_topic)
-        # Register the hub language itself
         if active_hub_lang in requested_set:
             lang_map[active_hub_lang] = canonical_title
         elif active_hub_lang == "nb" and "no" in requested_set:

@@ -4,9 +4,7 @@ from __future__ import annotations
 
 from typing import Dict, List
 
-# Standardized regions to ISO 639-1 language codes for Wikipedia editions
 REGION_LANGUAGES: Dict[str, List[str]] = {
-    # Comprehensive European coverage (25 languages)
     "europe": [
         "en", "de", "fr", "es", "it", "pl", "uk", "nl", "cs", "pt",
         "sv", "ro", "el", "hu", "da", "fi", "sk", "bg", "hr", "sr",
@@ -49,9 +47,7 @@ REGION_LANGUAGES: Dict[str, List[str]] = {
     ],
 }
 
-# Aliases for flexible matching (Ukrainian, Russian, English)
 REGION_ALIASES: Dict[str, str] = {
-    # Europe
     "europe": "europe",
     "європа": "europe",
     "европа": "europe",
@@ -66,12 +62,10 @@ REGION_ALIASES: Dict[str, str] = {
     "скандинавія": "scandinavia",
     "nordic": "nordic",
 
-    # Asia
     "asia": "asia",
     "азія": "asia",
     "азия": "asia",
 
-    # Americas
     "latin_america": "latin_america",
     "латинська америка": "latin_america",
     "латинская америка": "latin_america",
@@ -80,14 +74,12 @@ REGION_ALIASES: Dict[str, str] = {
     "північна америка": "north_america",
     "северная америка": "north_america",
 
-    # Middle East & Africa
     "middle_east": "middle_east",
     "близький схід": "middle_east",
     "ближний восток": "middle_east",
     "africa": "africa",
     "африка": "africa",
 
-    # World / Global
     "world_major": "world_major",
     "top_world": "world_major",
 }
@@ -100,30 +92,34 @@ ALL_WORLD_TOKENS = {
     "весь світ",
     "по всьому світу",
     "глобально",
-    "*",
+    "всі мови",
+    "все языки",
 }
 
 
-def expand_region_codes(codes_or_regions: List[str]) -> List[str]:
-    """Expand list containing region names or codes into a resolved list of language codes.
-
-    If any token requests all/global/world, returns ['all'] to trigger dynamic Wikipedia world resolution.
-    """
-    if not codes_or_regions:
+def expand_region_codes(codes: List[str]) -> List[str]:
+    """Expand regional aliases or 'all' into a flat list of Wikipedia language codes."""
+    if not codes:
         return ["en"]
 
-    for item in codes_or_regions:
-        normalized = item.strip().lower()
-        if normalized in ALL_WORLD_TOKENS:
+    expanded: List[str] = []
+    seen = set()
+
+    for raw_code in codes:
+        code = raw_code.strip().lower()
+
+        if code in ALL_WORLD_TOKENS or code == "*":
             return ["all"]
 
-    expanded: List[str] = []
-    for item in codes_or_regions:
-        key = item.strip().lower().replace("-", "_")
-        canonical_region = REGION_ALIASES.get(key, key)
-        if canonical_region in REGION_LANGUAGES:
-            expanded.extend(REGION_LANGUAGES[canonical_region])
+        mapped_region = REGION_ALIASES.get(code, code)
+        if mapped_region in REGION_LANGUAGES:
+            for lang in REGION_LANGUAGES[mapped_region]:
+                if lang not in seen:
+                    seen.add(lang)
+                    expanded.append(lang)
         else:
-            expanded.append(item.strip().lower())
+            if code not in seen:
+                seen.add(code)
+                expanded.append(code)
 
-    return list(dict.fromkeys(expanded))
+    return expanded if expanded else ["en"]
