@@ -5,6 +5,7 @@ from fastapi.responses import RedirectResponse
 from app.api.analyze import router as analyze_router
 from app.api.cache import router as cache_router
 from app.api.charts import router as charts_router
+from app.api.mcp import router as mcp_router
 from app.api.report import router as report_router
 
 app = FastAPI(
@@ -25,6 +26,7 @@ app.include_router(analyze_router)
 app.include_router(charts_router)
 app.include_router(report_router)
 app.include_router(cache_router)
+app.include_router(mcp_router)
 
 
 @app.get("/", include_in_schema=False)
