@@ -44,7 +44,7 @@ class WikipediaTrendsAnalyzer:
     async def analyze_topic(
         self,
         topic: str,
-        languages: Optional[List[str]] = None,
+        language_codes: Optional[List[str]] = None,
         start_date: Optional[str] = None,
         end_date: Optional[str] = None,
         granularity: str = "monthly",
@@ -61,7 +61,7 @@ class WikipediaTrendsAnalyzer:
         else:
             resolved_start = start_date
 
-        raw_languages = languages or ["en"]
+        raw_languages = language_codes or ["en"]
         resolved_languages = expand_region_codes(raw_languages)
 
         # ── Stage 0: Cache lookup ────────────────────────────────────────────

@@ -143,7 +143,7 @@ async def compute_trend_analytics(
     try:
         return await trends_analyzer.analyze_topic(
             topic=payload.topic,
-            languages=payload.language_codes,
+            language_codes=payload.language_codes,
             start_date=payload.start_date,
             end_date=payload.end_date,
             granularity=payload.granularity,
@@ -175,7 +175,7 @@ async def compute_natural_language_analytics(
         parsed_params = await parse_user_query_to_schema(payload.query)
         return await trends_analyzer.analyze_topic(
             topic=parsed_params.base_topic,
-            languages=parsed_params.language_codes,
+            language_codes=parsed_params.language_codes,
             start_date=parsed_params.start_date,
             end_date=parsed_params.end_date,
             granularity=parsed_params.granularity,
