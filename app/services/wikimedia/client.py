@@ -2,12 +2,17 @@
 
 from __future__ import annotations
 
-import asyncio
+
 import logging
 from typing import AsyncIterator, Dict, List, Optional
 import httpx
 
 from app.schemas.requests import PageviewItem
+from app.services.wikimedia.retry import (
+    WikimediaRateLimitError,
+    WikimediaServerError,
+    get_with_retry,
+)
 from app.services.wikimedia.utils import (
     WIKIMEDIA_MIN_DATE,
     align_date_for_pageviews,
@@ -97,7 +102,12 @@ async def resolve_localized_titles(
             "lllimit": "max",
             "format": "json",
         }
-        resp = await client.get(api_url, params=params)
+        resp = await get_with_retry(
+            client, api_url, params=params,
+            max_attempts=3,
+            base_delay=1.0,
+            operation_name=f"langlinks:{lang}:{topic[:30]}",
+        )
         resp.raise_for_status()
         return resp.json()
 
@@ -237,11 +247,12 @@ async def get_pageviews(
     )
 
     try:
-        response = await client.get(url)
-        if response.status_code == 429:
-            retry_after = float(response.headers.get("Retry-After", 1.0))
-            await asyncio.sleep(min(retry_after, 2.0))
-            response = await client.get(url)
+        response = await get_with_retry(
+            client, url,
+            max_attempts=3,
+            base_delay=1.0,
+            operation_name=f"pageviews:{lang}:{article_slug[:30]}",
+        )
         if response.status_code == 404:
             logger.info("Pageviews not found (404) for '%s' in '%s'", article_slug, lang)
             return []
@@ -265,6 +276,12 @@ async def get_pageviews(
             )
 
         return parsed_items
+    except (WikimediaRateLimitError, WikimediaServerError) as exc:
+        logger.error(
+            "Wikimedia API exhausted retries for '%s' (%s): %s",
+            article_slug, lang, exc,
+        )
+        return []
     except httpx.HTTPStatusError as exc:
         if exc.response.status_code == 404:
             return []
